@@ -1,8 +1,10 @@
-# BSC全能分红代币合约
+# bsc八代推广分红代币合约
+# 转账绑定上下级关系  下级交易上级获得本币分红  可分八代
+
 
 支持分红SHIB/ETH/USDT/DOGE等BSC所有代币。
 # 源码：
-https://github.com/tmimehi/dividendcontract/blob/main/dividendcontract.sol
+https://github.com/tmimehi/zvx_i8/blob/main/dividendcontract.sol
 
 # 如果遇到问题可联系TG：
 
@@ -44,6 +46,8 @@ buyFeeSetting_: [4,3,2,1] (分红、流动性、营销钱包、燃烧)
 
 sellFeeSetting_: [5,4,3,2] (分红、流动性、营销钱包、燃烧)
 
+INVITERFEE_： 1      八代分红占比
+
 tokenBalanceForReward_: 10000000000000000000000 (持有多少代币参与分红。数量后要加18个0)
 
 # BSC常用代币合约地址
@@ -71,7 +75,7 @@ CAKE: 0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82
 
 3，输入合约地址
 
-https://github.com/tmimehi/dividendcontract/blob/main/dividendcontract.sol
+https://github.com/tmimehi/zvx_i8/blob/main/dividendcontract.sol
 
 4，点击import
 
@@ -83,13 +87,12 @@ https://github.com/tmimehi/dividendcontract/blob/main/dividendcontract.sol
 
 7，选择编译版本0.8.7
 
-9，点击 编辑
+9，点击 编译
 
 ![3](https://user-images.githubusercontent.com/100020516/157315496-71ef72fc-ebda-4b91-9519-1c8e13aaab70.png)
 
-10,选择dividendcontract
-
-![4](https://user-images.githubusercontent.com/100020516/157315543-953e55e6-b8d8-44f7-acb4-66ad6e471f3f.png)
+10,选择ZVX_CC_I8
+![8](https://user-images.githubusercontent.com/100020516/159698008-c875fd42-d35c-463f-a8ab-561cf90915ab.png)
 
 11,ENVIRONMENT选择：injected Web3
 
@@ -105,13 +108,16 @@ rewardAddr_: 要分红的代币合约，BSC常用代币地址在下方
 
 marketingWalletAddr_: 你自己的营销钱包地址
 
-buyFeeSetting_: [4,3,2,1] (分红、流动性、营销钱包、燃烧)
+buyFeeSetting_: [4,3,2,1] (买入分红、流动性、营销钱包、燃烧)
 
-sellFeeSetting_: [5,4,3,2] (分红、流动性、营销钱包、燃烧)
+sellFeeSetting_: [5,4,3,2] (卖出分红、流动性、营销钱包、燃烧)
+
+INVITERFEE_： 1      八代分红占比
 
 tokenBalanceForReward_: 10000000000000000000000 (持有多少代币参与分红。数量后要加18个0)
 
-![5](https://user-images.githubusercontent.com/100020516/157315588-56153b79-3a68-40d2-8501-75bee35edcdc.png)
+![9](https://user-images.githubusercontent.com/100020516/159698411-0959b7cc-02b2-4d0e-96ec-af7358a74a43.png)
+
 
 12，点击 transact 
 
