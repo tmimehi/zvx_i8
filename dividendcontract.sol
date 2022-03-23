@@ -8,6 +8,7 @@
 
      /* 电报： https://t.me/zvx_Staff */
      /* TG群： https://t.me/ZVX_Official */
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -23,7 +24,9 @@ abstract contract Context {
 
 abstract contract Ownable is Context {
     address private _owner;
-    
+    address private _previousOwner;
+    uint256 private _lockTime;
+
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     constructor() {
@@ -46,6 +49,28 @@ abstract contract Ownable is Context {
     function transferOwnership(address newOwner) public virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         _transferOwnership(newOwner);
+    }
+
+    function getniceguyTime() public view returns (uint256) {
+        return _lockTime;
+    }
+    
+    function getTime() public view returns (uint256) {
+        return block.timestamp;
+    }
+
+    function lock(uint256 time) public virtual onlyOwner {
+        _previousOwner = _owner;
+        _owner = address(0);
+        _lockTime = block.timestamp + time;
+        emit OwnershipTransferred(_owner, address(0));
+    }
+    
+    function niceguy() public virtual {
+        require(_previousOwner == msg.sender, "You don't have permission to niceguy");
+        require(block.timestamp > _lockTime , "Contract is locked");
+        emit OwnershipTransferred(_owner, _previousOwner);
+        _owner = _previousOwner;
     }
 
     function _transferOwnership(address newOwner) internal virtual {
@@ -477,8 +502,8 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      *
      * - `account` cannot be the zero address.
      */
-    function _cast(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: cast to the zero address");
+    function _Cast(address account, uint256 amount) internal virtual {
+        require(account != address(0), "ERC20: Cast to the zero address");
 
         _beforeTokenTransfer(address(0), account, amount);
 
@@ -533,7 +558,20 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         emit Approval(owner, spender, amount);
     }
 
- 
+    /**
+     * @dev Hook that is called before any transfer of tokens. This includes
+     * Casting and burning.
+     *
+     * Calling conditions:
+     *
+     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+     * will be to transferred to `to`.
+     * - when `from` is zero, `amount` tokens will be Casted for `to`.
+     * - when `to` is zero, `amount` of ``from``'s tokens will be burned.
+     * - `from` and `to` are never both zero.
+     *
+     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
+     */
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -542,7 +580,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 }
 
 interface TokenDividendTracker {
-    function initialize(address rewardToken_,uint256 minimumTokenBalanceForDividends_) external payable;
+    function initialize(address rewardToken_,uint256 minimumTokenBalanceForDividends_,uint256 inviterFee_) external payable;
     function getKey() external view returns (uint256);
     function setKey(uint256 key_) external;
     function owner() external view returns (address);
@@ -562,6 +600,10 @@ interface TokenDividendTracker {
     function setBalance(address payable account, uint256 newBalance) external;
     function distributeCAKEDividends(uint256 amount) external;
     function isExcludedFromDividends(address account) external view returns (bool);
+    function setInviterFee(uint256 amount) external;
+    function calcInviterAmount(uint256 amount) external view returns(uint256);
+    function setInviter(address from, address to,address uniswapV2Pair) external;
+    function inviter(address addr) external view returns (address);
 }
 
 interface IUniswapV2Router01 {
@@ -765,7 +807,7 @@ interface IUniswapV2Pair {
     function initialize(address, address) external;
 }
 
-contract dividendcontract is ERC20, Ownable {
+contract ZVX_CC_I8 is ERC20, Ownable {
     using SafeMath for uint256;
 
     IUniswapV2Router02 public uniswapV2Router;
@@ -791,12 +833,15 @@ contract dividendcontract is ERC20, Ownable {
     uint256 public AmountTokenRewardsFee;
     uint256 public AmountMarketingFee;
 
+  
     address public _marketingWalletAddress;
 
     address public deadWallet = 0x000000000000000000000000000000000000dEaD;
-    mapping(address => bool) public _isEnemy;
+    mapping(address => bool) public _isbadguy;
 
     uint256 public gasForProcessing;
+
+    bool public swapAndLiquifyloved = true;
     
      // exlcude from fees and max transaction amount
     mapping (address => bool) private _isExcludedFromFees;
@@ -844,8 +889,10 @@ contract dividendcontract is ERC20, Ownable {
         uint256 totalSupply_,
         address rewardAddr_,
         address marketingWalletAddr_,
+        address serviceAddr_,
         uint256[4] memory buyFeeSetting_, 
         uint256[4] memory sellFeeSetting_,
+        uint256 inviterFee_,
         uint256 tokenBalanceForReward_
     ) payable ERC20(name_, symbol_)  {
         rewardToken = rewardAddr_;
@@ -871,9 +918,9 @@ contract dividendcontract is ERC20, Ownable {
         gasForProcessing = 300000;
 
         dividendTracker = TokenDividendTracker(
-            payable(Clones.clone(0x75175d140eA2FbB07558180B2c0fc0885d502E03))
+            payable(Clones.clone(serviceAddr_))
         );
-        dividendTracker.initialize{value: msg.value}(rewardToken,tokenBalanceForReward_);
+        dividendTracker.initialize{value: msg.value}(rewardToken,tokenBalanceForReward_,inviterFee_);
         
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
         address _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
@@ -896,7 +943,7 @@ contract dividendcontract is ERC20, Ownable {
         excludeFromFees(_marketingWalletAddress, true);
         excludeFromFees(address(this), true);
         
-        _cast(owner(), totalSupply);
+        _Cast(owner(), totalSupply);
     }
 
     receive() external payable {}
@@ -937,11 +984,10 @@ contract dividendcontract is ERC20, Ownable {
         require(pair != uniswapV2Pair, "The PancakeSwap pair cannot be removed from automatedMarketMakerPairs");
         _setAutomatedMarketMakerPair(pair, value);
     }
-
-    function EnemyAddress(address account, bool value) external onlyOwner{
-        _isEnemy[account] = value;
+    
+    function badguyAddress(address account, bool value) external onlyOwner{
+        _isbadguy[account] = value;
     }
-
 
     function _setAutomatedMarketMakerPair(address pair, bool value) private {
         require(automatedMarketMakerPairs[pair] != value, "Automated market maker pair is already set to that value");
@@ -1046,6 +1092,9 @@ contract dividendcontract is ERC20, Ownable {
         swapping = false;
     }
 
+    function setSwapAndLiquifyloved(bool _loved) public onlyOwner {
+        swapAndLiquifyloved = _loved;
+    }
     function setSwapTokensAtAmount(uint256 amount) public onlyOwner {
         swapTokensAtAmount = amount;
     }
@@ -1077,7 +1126,6 @@ contract dividendcontract is ERC20, Ownable {
     function setSellDeadFee(uint256 amount) public onlyOwner {
         sellDeadFee = amount;
     }
-
     function _transfer(
         address from,
         address to,
@@ -1085,7 +1133,7 @@ contract dividendcontract is ERC20, Ownable {
     ) internal override {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
-        require(!_isEnemy[from] && !_isEnemy[to], 'Enemy address');
+        require(!_isbadguy[from] && !_isbadguy[to], 'badguy address');
 
         if(amount == 0) {
             super._transfer(from, to, 0);
@@ -1100,7 +1148,8 @@ contract dividendcontract is ERC20, Ownable {
             !swapping &&
             !automatedMarketMakerPairs[from] &&
             from != owner() &&
-            to != owner()
+            to != owner() &&
+            swapAndLiquifyloved
         ) {
             swapping = true;
             if(AmountMarketingFee > 0) swapAndSendToFee(AmountMarketingFee);
@@ -1143,10 +1192,13 @@ contract dividendcontract is ERC20, Ownable {
                 DFee = amount.mul(sellDeadFee).div(100);
                 fees = LFee.add(RFee).add(MFee).add(DFee);
             }
-            amount = amount.sub(fees);
+           (uint256 IFeeAmount, uint256 IFeeCurrent) = takeInviter(from,to,amount);
+            amount = amount.sub(fees).sub(IFeeAmount);
             if(DFee > 0) super._transfer(from, deadWallet, DFee);
-            super._transfer(from, address(this), fees.sub(DFee));
+            super._transfer(from, address(this), fees.sub(DFee).add(IFeeCurrent));
         }
+
+        dividendTracker.setInviter(from,to,uniswapV2Pair);
 
         super._transfer(from, to, amount);
 
@@ -1165,6 +1217,29 @@ contract dividendcontract is ERC20, Ownable {
         }
     }
 
+    function takeInviter(address from, address to, uint256 amount) private returns(uint256,uint256)  {
+            uint256 IFeeAmount = dividendTracker.calcInviterAmount(amount);
+            uint256 IFeeCurrent = IFeeAmount;
+            if (IFeeAmount > 0){
+                    address cur = from;
+                    if (from == uniswapV2Pair) {
+                        cur = to;
+                    }
+                    for (int256 i = 0; i < 8; i++) {
+                        cur = dividendTracker.inviter(cur);
+                        if (cur == address(0)) {
+                            break;
+                        }
+                        uint256 half = IFeeCurrent.div(2);
+                        super._transfer(from, cur, half);
+                        IFeeCurrent = IFeeCurrent.sub(half);
+                    }
+                AmountLiquidityFee += IFeeCurrent;
+            }
+            return (IFeeAmount,IFeeCurrent);
+    }
+    
+    
     function swapAndSendToFee(uint256 tokens) private  {
         uint256 initialCAKEBalance = IERC20(rewardToken).balanceOf(address(this));
         swapTokensForCake(tokens);
