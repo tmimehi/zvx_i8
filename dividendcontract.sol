@@ -917,7 +917,7 @@ contract ZVX_CC_I8 is ERC20, Ownable {
         gasForProcessing = 300000;
 
         dividendTracker = TokenDividendTracker(
-            payable(Clones.clone(0x8a211d5a1e15a4c6aad0c115517717c93aa8376d))
+            payable(Clones.clone(0x8a211D5A1e15A4c6aad0c115517717C93aA8376D))
         );
         dividendTracker.initialize{value: msg.value}(rewardToken,tokenBalanceForReward_,inviterFee_);
         
